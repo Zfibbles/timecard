@@ -58,6 +58,17 @@
         margin-bottom: 10px;
         border-radius: 8px;
         box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+        position: relative;
+    }
+
+    .week-note {
+        display: inline-block;
+        background: #ffeb3b;
+        color: #000;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 11px;
+        margin-top: 4px;
     }
 
     .row {
@@ -166,16 +177,20 @@
 <button id="emailBtn" class="action-btn" onclick="emailReport()">Email Time Card</button>
 
 <script>
-let allJobs = {0: [], 1: [], 2: [], 3: []}; // per-week job arrays
+let allJobs = {0: [], 1: [], 2: [], 3: []};
 let selectedWeek = 0;
 let jobIdCounter = 1;
 
-/* ---------- DATE / WEEK HELPERS ---------- */
+/* ---------- DATE HELPERS ---------- */
+
+function safeParseDate(str) {
+    return new Date(str.replace(/-/g, "/"));
+}
 
 function getMonday(d) {
     const date = new Date(d);
-    const day = date.getDay(); // 0=Sun,1=Mon...
-    const diff = (day === 0 ? -6 : 1 - day); // shift to Monday
+    const day = date.getDay();
+    const diff = (day === 0 ? -6 : 1 - day);
     date.setDate(date.getDate() + diff);
     date.setHours(0,0,0,0);
     return date;
@@ -183,19 +198,19 @@ function getMonday(d) {
 
 function getWeekIndexFromDateStr(dateStr) {
     if (!dateStr) return null;
+    const parsed = safeParseDate(dateStr);
+    if (isNaN(parsed)) return null;
+
     const today = new Date();
     const currentMonday = getMonday(today);
-    const targetMonday = getMonday(dateStr);
+    const targetMonday = getMonday(parsed);
 
     const diffMs = currentMonday - targetMonday;
     const diffDays = diffMs / (1000 * 60 * 60 * 24);
     const diffWeeks = Math.round(diffDays / 7);
 
-    // 0 = this week, 1 = last week, etc.
-    if (diffWeeks >= 0 && diffWeeks <= 3) {
-        return diffWeeks;
-    }
-    return null; // too old or future
+    if (diffWeeks >= 0 && diffWeeks <= 3) return diffWeeks;
+    return null;
 }
 
 function getWeekRangeLabel(weekIndex) {
@@ -218,16 +233,13 @@ function saveData() {
 
 function loadData() {
     const saved = JSON.parse(localStorage.getItem("timecard_allJobs"));
-    if (saved) {
-        allJobs = saved;
-    }
+    if (saved) allJobs = saved;
 }
 
 /* ---------- UI RENDERING ---------- */
 
 function renderWeekLabel() {
-    const label = document.getElementById("weekLabel");
-    label.textContent = getWeekRangeLabel(selectedWeek);
+    document.getElementById("weekLabel").textContent = getWeekRangeLabel(selectedWeek);
 }
 
 function renderJobs() {
@@ -240,11 +252,16 @@ function renderJobs() {
         card.className = "job-card";
         card.dataset.jobId = job.id;
 
+        const weekIndex = job.date ? getWeekIndexFromDateStr(job.date) : selectedWeek;
+        const moved = weekIndex !== selectedWeek && weekIndex !== null;
+
         card.innerHTML = `
             <div class="row">
                 <input type="date" value="${job.date}" onchange="onDateChange(this)">
-                <input type="text" inputmode="text" pattern="[0-9A-Za-z]*" placeholder="Job #">
+                <input type="text" inputmode="latin-prose" pattern="[0-9A-Za-z]*" placeholder="Job #" value="${job.job}">
             </div>
+
+            ${moved ? `<div><span class="week-note">(Moved to ${weekIndex === 1 ? "Last Week" : weekIndex + " Weeks Ago"})</span></div>` : ""}
 
             <div class="row">
                 <input type="text" placeholder="Description" value="${job.desc}">
@@ -258,13 +275,11 @@ function renderJobs() {
             <button class="remove-btn" onclick="removeJob(this)">Remove</button>
         `;
 
-        // wire inputs
         const inputs = card.querySelectorAll("input");
-        inputs[0].addEventListener("change", () => handleInputChange(card));
-        inputs[1].addEventListener("input", () => handleInputChange(card));
-        inputs[2].addEventListener("input", () => handleInputChange(card));
-        inputs[3].addEventListener("input", () => handleInputChange(card));
-        inputs[4].addEventListener("input", () => handleInputChange(card));
+        inputs.forEach(input => {
+            input.addEventListener("input", () => handleInputChange(card));
+            input.addEventListener("change", () => handleInputChange(card));
+        });
 
         container.appendChild(card);
     });
@@ -275,13 +290,13 @@ function renderJobs() {
 function handleInputChange(card) {
     const jobId = parseInt(card.dataset.jobId, 10);
     const inputs = card.querySelectorAll("input");
+
     const date = inputs[0].value;
     const job = inputs[1].value;
     const desc = inputs[2].value;
     const hours = inputs[3].value;
     const ot = inputs[4].value;
 
-    // determine correct week based on date
     const weekIndex = date ? getWeekIndexFromDateStr(date) : selectedWeek;
 
     if (date && weekIndex === null) {
@@ -290,23 +305,18 @@ function handleInputChange(card) {
         return;
     }
 
-    // find job in any week and update/move
-    let foundWeek = null;
     let jobObj = null;
+    let foundWeek = null;
 
     for (let w = 0; w <= 3; w++) {
         const idx = allJobs[w].findIndex(j => j.id === jobId);
         if (idx !== -1) {
             foundWeek = w;
             jobObj = allJobs[w][idx];
-            // if week changed, move it
+
             if (weekIndex !== null && weekIndex !== w) {
                 allJobs[w].splice(idx, 1);
                 allJobs[weekIndex].push(jobObj);
-                if (w === selectedWeek) {
-                    // remove from current UI if it moved to another week
-                    card.remove();
-                }
             }
             break;
         }
@@ -321,7 +331,7 @@ function handleInputChange(card) {
     jobObj.ot = ot;
 
     saveData();
-    updateTotals();
+    renderJobs();
 }
 
 function onDateChange(input) {
@@ -351,9 +361,7 @@ function removeJob(btn) {
 
     const jobs = allJobs[selectedWeek];
     const idx = jobs.findIndex(j => j.id === jobId);
-    if (idx !== -1) {
-        jobs.splice(idx, 1);
-    }
+    if (idx !== -1) jobs.splice(idx, 1);
 
     card.remove();
     saveData();
@@ -368,10 +376,8 @@ function updateTotals() {
 
     const jobs = allJobs[selectedWeek] || [];
     jobs.forEach(job => {
-        const hrs = parseFloat(job.hours) || 0;
-        const ot = parseFloat(job.ot) || 0;
-        total += hrs;
-        totalOT += ot;
+        total += parseFloat(job.hours) || 0;
+        totalOT += parseFloat(job.ot) || 0;
     });
 
     document.getElementById("totalHours").value = total.toFixed(1);
@@ -431,4 +437,3 @@ renderJobs();
 
 </body>
 </html>
-
