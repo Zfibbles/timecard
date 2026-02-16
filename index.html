@@ -260,13 +260,13 @@ function renderJobs() {
         card.innerHTML = `
             <div class="row">
                 <input type="date" value="${job.date}" onchange="onDateChange(this)">
-                <input type="text" inputmode="latin-prose" pattern="[0-9A-Za-z]*" placeholder="Job #" value="${job.job}">
+                <input type="text" inputmode="text" pattern="[0-9A-Za-z]*" placeholder="Job #" value="${job.job}">
             </div>
 
             ${moved ? `<div><span class="week-note">(Moved to ${weekIndex === 1 ? "Last Week" : weekIndex + " Weeks Ago"})</span></div>` : ""}
 
             <div class="row">
-                <input type="text" placeholder="Description" value="${job.desc}">
+                <input type="text" inputmode="text" placeholder="Description" value="${job.desc}">
             </div>
 
             <div class="row">
@@ -308,12 +308,10 @@ function handleInputChange(card) {
     }
 
     let jobObj = null;
-    let foundWeek = null;
 
     for (let w = 0; w <= 3; w++) {
         const idx = allJobs[w].findIndex(j => j.id === jobId);
         if (idx !== -1) {
-            foundWeek = w;
             jobObj = allJobs[w][idx];
 
             if (weekIndex !== null && weekIndex !== w) {
