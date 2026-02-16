@@ -128,47 +128,105 @@
 <button id="emailBtn" class="action-btn" onclick="emailReport()">Email Time Card</button>
 
 <script>
-let jobCount = 0;
+/* -------------------------
+   AUTO-SAVE + AUTO-LOAD
+--------------------------*/
 
-function addJob() {
-    jobCount++;
+function saveData() {
+    const jobs = [];
 
+    document.querySelectorAll(".job-card").forEach(card => {
+        const inputs = card.querySelectorAll("input");
+        jobs.push({
+            date: inputs[0].value,
+            job: inputs[1].value,
+            desc: inputs[2].value,
+            hours: inputs[3].value,
+            ot: inputs[4].value
+        });
+    });
+
+    const totals = {
+        totalHours: document.getElementById("totalHours").value,
+        totalOT: document.getElementById("totalOT").value
+    };
+
+    localStorage.setItem("timecard_jobs", JSON.stringify(jobs));
+    localStorage.setItem("timecard_totals", JSON.stringify(totals));
+}
+
+function loadData() {
+    const savedJobs = JSON.parse(localStorage.getItem("timecard_jobs"));
+    const savedTotals = JSON.parse(localStorage.getItem("timecard_totals"));
+
+    if (savedJobs && savedJobs.length > 0) {
+        document.getElementById("jobs").innerHTML = "";
+        savedJobs.forEach(job => addJob(job));
+    } else {
+        addJob(); // start with one blank job
+    }
+
+    if (savedTotals) {
+        document.getElementById("totalHours").value = savedTotals.totalHours;
+        document.getElementById("totalOT").value = savedTotals.totalOT;
+    }
+}
+
+/* -------------------------
+   JOB CARD FUNCTIONS
+--------------------------*/
+
+function addJob(saved = null) {
     const container = document.getElementById("jobs");
 
     const card = document.createElement("div");
     card.className = "job-card";
     card.innerHTML = `
         <div class="row">
-            <input type="date" onchange="updateTotals()">
-            <input type="text" placeholder="Job #" oninput="updateTotals()">
+            <input type="date" onchange="updateTotals(); saveData();">
+            <input type="text" placeholder="Job #" oninput="updateTotals(); saveData();">
         </div>
 
         <div class="row">
-            <input type="text" placeholder="Description" oninput="updateTotals()">
+            <input type="text" placeholder="Description" oninput="updateTotals(); saveData();">
         </div>
 
         <div class="row">
-            <input type="number" placeholder="Hours" step="0.1" oninput="updateTotals()">
-            <input type="number" placeholder="OT" step="0.1" oninput="updateTotals()">
+            <input type="tel" inputmode="decimal" placeholder="Hours" oninput="updateTotals(); saveData();">
+            <input type="tel" inputmode="decimal" placeholder="OT" oninput="updateTotals(); saveData();">
         </div>
 
         <button class="remove-btn" onclick="removeJob(this)">Remove</button>
     `;
 
     container.appendChild(card);
+
+    if (saved) {
+        const inputs = card.querySelectorAll("input");
+        inputs[0].value = saved.date;
+        inputs[1].value = saved.job;
+        inputs[2].value = saved.desc;
+        inputs[3].value = saved.hours;
+        inputs[4].value = saved.ot;
+    }
 }
 
 function removeJob(btn) {
     btn.parentElement.remove();
     updateTotals();
+    saveData();
 }
+
+/* -------------------------
+   TOTALS + EMAIL
+--------------------------*/
 
 function updateTotals() {
     let total = 0;
     let totalOT = 0;
 
     document.querySelectorAll(".job-card").forEach(card => {
-        const inputs = card.querySelectorAll("input[type='number']");
+        const inputs = card.querySelectorAll("input[inputmode='decimal']");
         const hrs = parseFloat(inputs[0].value) || 0;
         const ot = parseFloat(inputs[1].value) || 0;
 
@@ -178,6 +236,8 @@ function updateTotals() {
 
     document.getElementById("totalHours").value = total.toFixed(1);
     document.getElementById("totalOT").value = totalOT.toFixed(1);
+
+    saveData();
 }
 
 function emailReport() {
@@ -208,8 +268,11 @@ Jobs:%0D%0A`;
     window.location.href = `mailto:?subject=Time Card&body=${body}`;
 }
 
-// Start with one job by default
-addJob();
+/* -------------------------
+   INIT
+--------------------------*/
+
+loadData();
 </script>
 
 </body>
