@@ -243,7 +243,7 @@ function renderJobs() {
         card.innerHTML = `
             <div class="row">
                 <input type="date" value="${job.date}" onchange="onDateChange(this)">
-                <input type="text" inputmode="numeric" placeholder="Job #" value="${job.job}">
+                <input type="text" inputmode="text" pattern="[0-9A-Za-z]*" placeholder="Job #">
             </div>
 
             <div class="row">
@@ -431,3 +431,4 @@ renderJobs();
 
 </body>
 </html>
+
