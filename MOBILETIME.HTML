@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wirtz Electric Time Card</title>
+
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 15px;
+        background: #f4f4f4;
+    }
+
+    h2 {
+        text-align: center;
+        font-size: 18px;
+        margin-bottom: 10px;
+    }
+
+    #jobs {
+        margin-top: 10px;
+    }
+
+    .job-card {
+        background: white;
+        padding: 12px;
+        margin-bottom: 10px;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    }
+
+    .row {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 8px;
+    }
+
+    .row input {
+        flex: 1;
+        padding: 8px;
+        font-size: 14px;
+    }
+
+    .remove-btn {
+        background: #b30000;
+        color: white;
+        border: none;
+        padding: 6px 10px;
+        border-radius: 5px;
+        font-size: 12px;
+    }
+
+    #addBtn {
+        width: 100%;
+        padding: 12px;
+        background: #004aad;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        margin-top: 10px;
+    }
+
+    #totals {
+        margin-top: 15px;
+        background: white;
+        padding: 12px;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    }
+
+    #totals input {
+        width: 100%;
+        padding: 8px;
+        margin-top: 5px;
+        font-size: 14px;
+    }
+</style>
+
+</head>
+<body>
+
+<h2>WIRTZ ELECTRIC & COMMUNICATIONS<br>MUSKEGON, MI</h2>
+
+<div id="jobs"></div>
+
+<button id="addBtn" onclick="addJob()">Add Job</button>
+
+<div id="totals">
+    <strong>Total Hours</strong>
+    <input id="totalHours" readonly>
+
+    <strong>Total OT Hours</strong>
+    <input id="totalOT" readonly>
+</div>
+
+<script>
+let jobCount = 0;
+
+function addJob() {
+    jobCount++;
+
+    const container = document.getElementById("jobs");
+
+    const card = document.createElement("div");
+    card.className = "job-card";
+    card.innerHTML = `
+        <div class="row">
+            <input type="date" onchange="updateTotals()">
+            <input type="text" placeholder="Job #" oninput="updateTotals()">
+        </div>
+
+        <div class="row">
+            <input type="text" placeholder="Description" oninput="updateTotals()">
+        </div>
+
+        <div class="row">
+            <input type="number" placeholder="Hours" step="0.1" oninput="updateTotals()">
+            <input type="number" placeholder="OT" step="0.1" oninput="updateTotals()">
+        </div>
+
+        <button class="remove-btn" onclick="removeJob(this)">Remove</button>
+    `;
+
+    container.appendChild(card);
+}
+
+function removeJob(btn) {
+    btn.parentElement.remove();
+    updateTotals();
+}
+
+function updateTotals() {
+    let total = 0;
+    let totalOT = 0;
+
+    document.querySelectorAll(".job-card").forEach(card => {
+        const inputs = card.querySelectorAll("input[type='number']");
+        const hrs = parseFloat(inputs[0].value) || 0;
+        const ot = parseFloat(inputs[1].value) || 0;
+
+        total += hrs;
+        totalOT += ot;
+    });
+
+    document.getElementById("totalHours").value = total.toFixed(1);
+    document.getElementById("totalOT").value = totalOT.toFixed(1);
+}
+
+// Start with one job by default
+addJob();
+</script>
+
+</body>
+</html>
