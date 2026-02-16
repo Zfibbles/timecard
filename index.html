@@ -70,20 +70,20 @@
         font-size: 11px;
         margin-top: 4px;
     }
+.row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+    min-width: 0; /* prevents collapse */
+}
 
-    .row {
-        display: flex;
-        gap: 8px;
-        margin-bottom: 8px;
-    }
-
-    .row input {
-        flex: 1;
-        min-width: 0;
-        padding: 8px;
-        font-size: 14px;
-    }
-
+.row input {
+    flex: 1 1 auto;
+    min-width: 0; /* prevents Safari shrinking */
+    padding: 8px;
+    font-size: 14px;
+}
+  
     .remove-btn {
         background: #b30000;
         color: white;
@@ -437,3 +437,4 @@ renderJobs();
 
 </body>
 </html>
+
